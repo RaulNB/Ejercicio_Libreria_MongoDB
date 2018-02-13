@@ -10,10 +10,7 @@ import com.mongodb.client.MongoDatabase;
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Indexes.descending;
 import java.util.ArrayList;
-import org.bson.BsonDocument;
 import org.bson.Document;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.conversions.Bson;
 
 /**
  *
@@ -107,5 +104,21 @@ public class BaseDatos {
     public Producto convertirDocumentoProducto(Document docu){
         //Le cargamos las etiquetas BSON a los atributos de la clase Productos
         return null;
+    }
+    
+    public boolean inicializarBaseDatosMiBaseDatos(){
+        //Borrar la base de datos
+        //Crear las 3 colecciones
+        //Insertar los datos de tres documentos
+        return true;
+    }
+    
+    public boolean borrarProducto(Producto producto){
+        
+        return borrarProducto(producto.getIdProducto());
+    }
+    
+    public boolean borrarProducto(int idProducto){
+        return true;
     }
 }
