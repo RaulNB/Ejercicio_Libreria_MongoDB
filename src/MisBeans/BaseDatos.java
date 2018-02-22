@@ -6,10 +6,13 @@
 package MisBeans;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Indexes.descending;
+import static com.mongodb.client.model.Updates.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 import org.bson.Document;
 
 /**
@@ -41,7 +44,7 @@ public class BaseDatos {
             producto = new Producto();
             producto.setDescripcion(doc.getString("descripcion"));
             producto.setIdProducto(doc.getInteger("idProducto"));
-            producto.setPvp(Float.parseFloat(doc.getString("pvp")));
+            producto.setPvp(Float.parseFloat(doc.get("pvp").toString()));
             producto.setStockActual(doc.getInteger("stockActual"));
             producto.setStockMinimo(doc.getInteger("stockMinimo"));
         }
@@ -50,34 +53,79 @@ public class BaseDatos {
     }
     
     public static int obtenerNumeroProducto(){
-        int numId = 0;
-        Document doc = (Document) db.getCollection("Producto").find().sort(descending("id")).first();
+        Document doc = (Document) db.getCollection("Producto").find().sort(descending("idProducto")).first();
         
-        if (!doc.isEmpty()){
-            numId = doc.getInteger("idProducto") + 1;
+        if (doc != null){
+           return doc.getInteger("idProducto") + 1;
         }
         
-        return numId;
+        return 0;
     }
     
     public static int obtenerNumeroPedido(){
-        //En este método se devuelve el numero del siguiente pedido a insertar
+        Document doc = (Document) db.getCollection("Pedido").find().sort(descending("numeroPedido")).first();
+        
+        if (doc != null){
+            return doc.getInteger("numeroPedido") + 1;
+        }
+        
         return 0;
     }
     
     public static int obtenerNumeroVenta(){
-        //En este método se devuelve el numero de la siguiente venta a insertar
+        Document doc = (Document) db.getCollection("Ventas").find().sort(descending("numeroVenta")).first();
+        
+        if (doc != null){
+            return doc.getInteger("numeroVenta") + 1;
+        }
+        
         return 0;
     }
     
     public boolean insertaProducto(Producto producto){
-        
-        return true; //Si todo correcto
+        try{
+            MongoCollection<Document> collect = db.getCollection("Producto");
+            Document docProd = new Document();
+
+            docProd.append("idProducto", producto.getIdProducto())
+                    .append("descripcion", producto.getDescripcion())
+                    .append("stockActual", producto.getStockActual())
+                    .append("stockMinimo", producto.getStockMinimo())
+                    .append("pvp", producto.getPvp());
+
+            collect.insertOne(docProd);
+
+            return true;
+        }
+        catch(Exception e){
+            return false;
+        }
     }
     
     public boolean insertaPedido(Producto producto, int cantidad){
-        
-        return true; //Si todo correcto
+        try{
+            Producto prod = obtenerProductoBD(producto.getIdProducto());
+            
+            MongoCollection<Document> collect = db.getCollection("Pedido");
+            Document docPed = new Document();
+            
+            docPed.append("numeroPedido", obtenerNumeroPedido())
+                    .append("producto",
+                            new Document("idProducto", prod.getIdProducto())
+                            .append("descripcion", prod.getDescripcion())
+                            .append("stockActual", prod.getStockActual())
+                            .append("stockMinimo", prod.getStockMinimo())
+                            .append("pvp", prod.getPvp()))
+                    .append("fecha", getFechaActual())
+                    .append("cantidad", cantidad);
+
+            collect.insertOne(docPed);
+
+            return true;
+        }
+        catch(Exception e){
+            return false;
+        }
     }
     
     public boolean insertarVenta(Producto producto, int cantidad, String observaciones){
@@ -85,8 +133,23 @@ public class BaseDatos {
     }
     
     public boolean insertarVenta(int idProducto, int cantidad, String observaciones){
-        
-        return true; //Si todo correcto
+        try{
+            MongoCollection<Document> collect = db.getCollection("Ventas");
+            Document docVen = new Document();
+            
+            docVen.append("numeroVenta", obtenerNumeroVenta())
+                    .append("idProducto", idProducto)
+                    .append("fechaVenta", getFechaActual())
+                    .append("cantidad", cantidad)
+                    .append("observaciones", observaciones);
+
+            collect.insertOne(docVen);
+
+            return true;
+        }
+        catch(Exception e){
+            return false;
+        }
     }
     
     private static java.sql.Date getFechaActual(){
@@ -94,11 +157,26 @@ public class BaseDatos {
     }
     
     private void actualizarStock(Producto producto, int cantidad){
+        Producto prod = obtenerProductoBD(producto.getIdProducto());
         
+        cantidad += prod.getStockActual();
+        
+        MongoCollection<Document> docProd = db.getCollection("Producto");
+        docProd.updateOne(eq("idProducto", prod.getIdProducto()), set("cantidad", cantidad));
     }
     
     public ArrayList<Producto> datosProductos(){
-        return null;
+        MongoCollection<Document> productos = db.getCollection("Producto");
+        Iterator iterator = productos.find().iterator();
+        ArrayList<Producto> listProds = new ArrayList<>();
+        
+        while(iterator.hasNext()){
+            Document docProd = (Document) iterator.next();
+            
+            listProds.add(prod);
+        }
+        
+        return listProds;
     }
     
     public Producto convertirDocumentoProducto(Document docu){
@@ -107,10 +185,20 @@ public class BaseDatos {
     }
     
     public boolean inicializarBaseDatosMiBaseDatos(){
-        //Borrar la base de datos
-        //Crear las 3 colecciones
-        //Insertar los datos de tres documentos
-        return true;
+        try{
+            db.drop();
+            
+            db.createCollection("Producto");
+            db.createCollection("Pedido");
+            db.createCollection("Ventas");
+       
+            
+            
+            return true;
+        }
+        catch(Exception e){
+            return false;
+        }
     }
     
     public boolean borrarProducto(Producto producto){
@@ -119,6 +207,13 @@ public class BaseDatos {
     }
     
     public boolean borrarProducto(int idProducto){
-        return true;
+        try{    
+            MongoCollection<Document> collect = db.getCollection("Producto");
+            collect.deleteOne(eq("idProducto", idProducto));
+            return true;
+        }
+        catch(Exception e){
+            return false;
+        }
     }
 }
