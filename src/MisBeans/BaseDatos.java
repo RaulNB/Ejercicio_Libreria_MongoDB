@@ -162,7 +162,7 @@ public class BaseDatos {
         cantidad += prod.getStockActual();
         
         MongoCollection<Document> docProd = db.getCollection("Producto");
-        docProd.updateOne(eq("idProducto", prod.getIdProducto()), set("cantidad", cantidad));
+        docProd.updateOne(eq("idProducto", prod.getIdProducto()), set("stockActual", cantidad));
     }
     
     public ArrayList<Producto> datosProductos(){
@@ -173,6 +173,13 @@ public class BaseDatos {
         while(iterator.hasNext()){
             Document docProd = (Document) iterator.next();
             
+            Producto prod = new Producto();
+            prod.setIdProducto(docProd.getInteger("idProducto"));
+            prod.setDescripcion(docProd.getString("descripcion"));
+            prod.setPvp(Float.parseFloat(docProd.getString("pvp")));
+            prod.setStockMinimo(docProd.getInteger("stockMinimo"));
+            prod.setStockActual(docProd.getInteger("stockActual"));
+            
             listProds.add(prod);
         }
         
@@ -180,19 +187,28 @@ public class BaseDatos {
     }
     
     public Producto convertirDocumentoProducto(Document docu){
-        //Le cargamos las etiquetas BSON a los atributos de la clase Productos
-        return null;
+        try{
+            Producto prod = new Producto();
+            
+            prod.setIdProducto(docu.getInteger("idProducto"));
+            prod.setIdProducto(docu.getInteger("idProducto"));
+            prod.setDescripcion(docu.getString("descripcion"));
+            prod.setPvp(Float.parseFloat(docu.getString("pvp")));
+            prod.setStockMinimo(docu.getInteger("stockMinimo"));
+            prod.setStockActual(docu.getInteger("stockActual"));
+            
+            return prod;
+        }
+        catch(Exception e){
+            return null;
+        }
     }
     
     public boolean inicializarBaseDatosMiBaseDatos(){
         try{
-            db.drop();
-            
             db.createCollection("Producto");
             db.createCollection("Pedido");
             db.createCollection("Ventas");
-       
-            
             
             return true;
         }
